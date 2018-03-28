@@ -2,7 +2,7 @@
 <sdf version='1.6'>
   <model name='red_bowl'>
     <link name='link'>
-      <pose frame=''>-0.35 0.2 0.78 0 -0 0</pose>
+      <pose frame=''>0.0 0.0 0 0 -0 0</pose>
       <inertial>
         <pose frame=''>0 0 0.25 0 -0 0</pose>
         <mass>0.1</mass>

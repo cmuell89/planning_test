@@ -12,6 +12,7 @@ catkin_package(
   rospy
   intera_core_msgs
   gazebo_msgs
+  cairo_sawyer_interface
 )
 
 
