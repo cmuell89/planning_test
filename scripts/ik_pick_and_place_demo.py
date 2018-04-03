@@ -43,7 +43,7 @@ from sawyer_interface.moveit_interface import SawyerMoveitInterface
 
 class SimulationObject(object):
     def __init__(self, name, model_filepath, model_type, pose,
-                 reference_frame="world", hover_distance=.15,
+                 reference_frame="base", hover_distance=.15,
                  overhead_orientation=Quaternion(
                              x=-0.011940598492311645,
                              y=0.9990539733303562,
@@ -81,6 +81,11 @@ class SimulationObject(object):
 
     def get_current_pose(self):
         return copy.deepcopy(self.pose)
+
+    # def get_offset_pose(self, vertical_offset=.8617):
+    #     pose = copy.deepcopy(self.pose)
+    #     pose.position.z = pose.position.z - self.vertical_offset
+    #     return pose
 
 
 class PickAndPlace(object):
@@ -131,25 +136,22 @@ class PickAndPlace(object):
         # approach with a pose the hover-distance above the requested pose
         approach_pose.position.z = approach_pose.position.z + sim_object.hover_distance
         approach_pose.orientation = sim_object.overhead_orientation
-        rospy.loginfo("Approach pose: {}".format(approach_pose))
         self._moveit_interface.move_to_pose_target(approach_pose)
 
     def _retract(self, sim_object):
         target_pose = sim_object.get_current_pose()
         target_pose.position.z = target_pose.position.z + sim_object.hover_distance
         target_pose.orientation = sim_object.overhead_orientation
-        rospy.loginfo("Retract pose: {}".format(target_pose))
-
         self._moveit_interface.move_to_pose_target(target_pose)
 
     def pick(self, sim_object):
         if rospy.is_shutdown():
             return
-
+        rospy.loginfo("Picking {}".format(sim_object.name))
         self.gripper_open()
         self._approach(sim_object)
         target_pose = sim_object.get_current_pose()
-        rospy.loginfo("Pick pose: {}".format(target_pose))
+        target_pose.orientation = sim_object.overhead_orientation
         self._moveit_interface.move_to_pose_target(target_pose)
         if rospy.is_shutdown():
             return
@@ -162,6 +164,7 @@ class PickAndPlace(object):
         # Need to set target pose.
         if rospy.is_shutdown():
             return
+        rospy.loginfo("Placing {}".format(sim_object.name))
         # servo above pose
         self._approach(sim_object)
         # servo to pose
@@ -217,11 +220,11 @@ def main():
     model_path = rospkg.RosPack().get_path('planning_sim_demo')+"/models/"
 
     sim_objects = OrderedDict()
-    sim_objects["cafe_table"] = SimulationObject("cafe_table", model_path + "cafe_table/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.75, y=0.0, z=0.0)))
-    sim_objects["red_block"] = SimulationObject("red_block", model_path + "red_block/model.urdf", model_type="urdf", pose=Pose(position=Point(x=0.4225, y=0.1265, z=0.7725)))
-    sim_objects["green_block"] = SimulationObject("green_block", model_path + "green_block/model.urdf", model_type="urdf", pose=Pose(position=Point(x=0.4225, y=-0.1665, z=0.7725)))
-    sim_objects["green_bowl"] = SimulationObject("green_bowl", model_path + "green_bowl/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.6000, y=0.1265, z=0.7725)))
-    sim_objects["red_bowl"] = SimulationObject("red_bowl", model_path + "red_bowl/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.6000, y=-0.1265, z=0.7725)))
+    sim_objects["cafe_table"] = SimulationObject("cafe_table", model_path + "cafe_table/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.75, y=0.0, z=-.9217)))
+    sim_objects["red_block"] = SimulationObject("red_block", model_path + "red_block/model.urdf", model_type="urdf", pose=Pose(position=Point(x=0.4225, y=0.1265, z=-0.1492)))
+    sim_objects["green_block"] = SimulationObject("green_block", model_path + "green_block/model.urdf", model_type="urdf", pose=Pose(position=Point(x=0.4225, y=-0.1665, z=-0.1492)))
+    sim_objects["green_bowl"] = SimulationObject("green_bowl", model_path + "green_bowl/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.6000, y=0.1265, z=-0.1492)))
+    sim_objects["red_bowl"] = SimulationObject("red_bowl", model_path + "red_bowl/model.sdf", model_type="sdf", pose=Pose(position=Point(x=0.6000, y=-0.1265, z=-0.1492)))
 
     # Load all simulation objects into Gazebo
     load_gazebo_models(sim_objects.values())
@@ -241,22 +244,22 @@ def main():
     pnp = PickAndPlace(limb)
     # An orientation for gripper fingers to be overhead and parallel to the obj
     overhead_orientation = Quaternion(
-                             x=-0.011945179403945185,
-                             y=0.9990525677759885,
-                             z=-0.007193759099379768,
-                             w=0.04122532925175943)
+                             x=-0.011940598492311645,
+                             y=0.9990539733303562,
+                             z=-0.007206884011932187,
+                             w=0.04119030593855785)
     block_poses = list()
     # The Pose of the block in its initial location.
     # You may wish to replace these poses with estimates
     # from a perception node.
     block_poses.append(Pose(
-        position=Point(x=0.45, y=0.155, z=-0.129),
-        orientation=copy.deepcopy(overhead_orientation)))
+        position=Point(x=0.4225, y=0.1265, z=-0.129),
+        orientation=overhead_orientation))
     # Feel free to add additional desired poses for the object.
     # Each additional pose will get its own pick and place.
     block_poses.append(Pose(
         position=Point(x=0.6, y=-0.1, z=-0.129),
-        orientation=copy.deepcopy(overhead_orientation)))
+        orientation=overhead_orientation))
     # Move to the desired starting angles
     print("Running. Ctrl-c to quit")
     pnp.move_to_start(starting_joint_angles)
